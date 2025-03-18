@@ -68,6 +68,10 @@ def validate_key_endpoint():
     result = validate_key()
     return jsonify(result)
 
+@app.route('/test')
+def test():
+    return 'Hello, test!'
+
 
 if __name__ == "__main__":
     print("Flask app is running...", file=sys.stderr)
