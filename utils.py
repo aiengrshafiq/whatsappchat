@@ -2,18 +2,11 @@ import re
 import sys
 import openai
 import requests
-from config import OPENAI_API_KEY, CRM_API_URL
+from config import OPENAI_API_KEY, CRM_API_URL, WHATSAPP_API_URL, WHATSAPP_ACCESS_TOKEN
 
-# Try to import the AuthenticationError from openai.errors.
-try:
-    from openai.errors import AuthenticationError
-except ModuleNotFoundError:
-    # Fallback: define a generic exception to catch if the module isn't available.
-    AuthenticationError = Exception
-
-# Initialize the OpenAI API key.
 openai.api_key = OPENAI_API_KEY
 
+# Extract name, email, phone (existing code from utils.py)
 def extract_email(text):
     email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
     matches = re.findall(email_pattern, text)
@@ -23,12 +16,11 @@ def extract_phone(text):
     phone_pattern = r"(\+?\d{1,3}[\s-]?)?(\d{10})"
     matches = re.findall(phone_pattern, text)
     if matches:
-        # Join the captured groups of the first match.
         return ''.join(matches[0])
     return None
 
 def extract_name(text):
-    # TODO: Implement name extraction if needed.
+    # Implement name extraction logic here, if needed.
     return None
 
 # In-memory user state (for demo purposes)
@@ -51,6 +43,7 @@ def update_user_state(user_id, message):
     
     return user_states[user_id]
 
+# Generate response using OpenAI API
 def generate_response(prompt):
     try:
         messages = [
@@ -72,6 +65,7 @@ def generate_response(prompt):
         print("Error in generate_response:", e, file=sys.stderr)
         return "Sorry, an error occurred."
 
+# Send to CRM
 def send_to_crm(user_data):
     try:
         response = requests.post(CRM_API_URL, json=user_data)
@@ -79,26 +73,64 @@ def send_to_crm(user_data):
     except Exception as e:
         return {"error": str(e)}
 
+# Process user state and send to CRM if complete
 def process_user_state(user_id):
     state = user_states.get(user_id)
     if state and state["name"] and state["email"] and state["phone"]:
         crm_response = send_to_crm(state)
-        # Clear the state after sending data to CRM.
-        user_states.pop(user_id, None)
+        user_states.pop(user_id, None)  # Clear the user state after sending to CRM
         return crm_response
     return None
 
+# Validate OpenAI API key
 def validate_key():
-    """
-    Validate the OpenAI API key by attempting to list available models.
-    Returns a dictionary indicating whether the key is valid.
-    """
     api_key = OPENAI_API_KEY
     openai.api_key = api_key
     try:
-        openai.Model.list()  # This call requires a valid API key.
+        openai.Model.list()
         return {"valid": True, "message": "API key is valid."}
-    except AuthenticationError:
-        return {"valid": False, "message": "Invalid API key."}
     except Exception as e:
         return {"valid": False, "message": f"An error occurred: {e}"}
+
+# Simulate sending a message via WhatsApp
+def send_whatsapp_message(recipient, message):
+    headers = {"Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}", "Content-Type": "application/json"}
+    data = {
+        "messaging_product": "whatsapp",
+        "to": recipient,
+        "type": "text",
+        "text": {"body": message},
+    }
+    try:
+        response = requests.post(WHATSAPP_API_URL, headers=headers, json=data)
+        return response.json()
+    except Exception as e:
+        print("Error sending message:", e)
+        return {"error": str(e)}
+
+# Handle the logic for the WhatsApp webhook
+def handle_whatsapp_webhook(data):
+    user_id = data.get("from")
+    message_text = data.get("message")
+    
+    # Update the conversation state for the user
+    user_data = update_user_state(user_id, message_text)
+    
+    # Check if all required details have been provided
+    if user_data["name"] and user_data["email"] and user_data["phone"]:
+        # Process state and simulate sending data to CRM
+        crm_response = process_user_state(user_id)
+        reply = "Thank you! Your details have been recorded."
+    else:
+        reply = generate_response(message_text)
+        missing = []
+        if not user_data["name"]:
+            missing.append("name")
+        if not user_data["email"]:
+            missing.append("email")
+        if not user_data["phone"]:
+            missing.append("phone")
+        if missing:
+            reply += f"\nCould you please provide your {', '.join(missing)}?"
+    
+    return reply, user_data
