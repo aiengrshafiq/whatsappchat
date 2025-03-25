@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from utils import handle_whatsapp_webhook, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive
+from utils import handle_whatsapp_webhook, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive,send_whatsapp_message_text
 import sys
 from config import VERIFY_TOKEN
 
@@ -67,7 +67,8 @@ def validate_key_endpoint():
 
 @app.route('/test')
 def test():
-    return 'Hello, test!'
+    return send_whatsapp_message_text(recipient = "971552493494",message="I am from metamorphic")
+    #return 'Hello, test!'
 
 if __name__ == "__main__":
     print("Flask app is running...", file=sys.stderr)
