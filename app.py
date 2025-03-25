@@ -25,13 +25,23 @@ def whatsapp_webhook_get():
 @app.route('/webhook', methods=['POST'])
 def whatsapp_webhook():
     data = request.json
-    if 'entry' in data:
-        for entry in data['entry']:
-            for change in entry.get('changes', []):
-                if change.get('field') == 'messages':
-                    message_data = change['value']
-                    handle_incoming_message(message_data)
-    return jsonify(success=True), 200
+    response_details = {"status": "received", "actions": []}
+    
+    try:
+        if 'entry' in data:
+            for entry in data['entry']:
+                for change in entry.get('changes', []):
+                    if change.get('field') == 'messages':
+                        message_data = change['value']
+                        result = handle_incoming_message(message_data)
+                        response_details["actions"].append(result)
+                        
+        return jsonify(response_details), 200
+    except Exception as e:
+        response_details["status"] = "error"
+        response_details["error"] = str(e)
+        return jsonify(response_details), 500
+
 
     # Call the refactored function in utils.py to handle the webhook logic
     #reply, user_data = handle_whatsapp_webhook(data)
