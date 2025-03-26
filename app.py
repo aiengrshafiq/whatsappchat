@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from utils import handle_whatsapp_webhook, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive,send_whatsapp_message_text
+from utils import handle_whatsapp_webhook,handle_message_status, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive,send_whatsapp_message_text
 import sys
 from config import VERIFY_TOKEN
 
