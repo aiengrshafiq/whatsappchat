@@ -26,16 +26,22 @@ def whatsapp_webhook_get():
 def whatsapp_webhook():
     data = request.json
     response_details = {"status": "received", "actions": []}
-    
+
     try:
         if 'entry' in data:
             for entry in data['entry']:
                 for change in entry.get('changes', []):
                     if change.get('field') == 'messages':
                         message_data = change['value']
-                        result = handle_incoming_message(message_data)
-                        response_details["actions"].append(result)
-                        
+
+                        if 'messages' in message_data:
+                            result = handle_incoming_message(message_data)
+                            response_details["actions"].append({"type": "incoming_message", "result": result})
+
+                        if 'statuses' in message_data:
+                            result = handle_message_status(message_data)
+                            response_details["actions"].append({"type": "message_status", "result": result})
+
         return jsonify(response_details), 200
     except Exception as e:
         response_details["status"] = "error"
