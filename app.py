@@ -35,10 +35,29 @@ def whatsapp_webhook():
                         message_data = change['value']
 
                         if 'messages' in message_data:
-                            result = handle_incoming_message(message_data)
-                            response_details["actions"].append({"type": "incoming_message", "result": result})
+                            for message in message_data['messages']:
+                                sender_number = message['from']
+
+                                if 'context' in message:
+                                    result = handle_incoming_message({"messages": [message], "contacts": message_data.get('contacts', [])})
+                                    response_details["actions"].append({
+                                        "type": "existing_alert_reply",
+                                        "result": result
+                                    })
+                                else:
+                                    user_message = message['text']['body']
+                                    reply, user_data = handle_whatsapp_webhook({
+                                        "from": sender_number,
+                                        "message": user_message
+                                    })
+                                    send_whatsapp_message_text(sender_number, reply)
+                                    response_details["actions"].append({
+                                        "type": "new_customer_chatbot_reply",
+                                        "reply_sent": reply
+                                    })
 
                         if 'statuses' in message_data:
+                            # Existing logic for statuses
                             result = handle_message_status(message_data)
                             response_details["actions"].append({"type": "message_status", "result": result})
 
@@ -47,6 +66,7 @@ def whatsapp_webhook():
         response_details["status"] = "error"
         response_details["error"] = str(e)
         return jsonify(response_details), 500
+
 
 
     # Call the refactored function in utils.py to handle the webhook logic

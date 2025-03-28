@@ -24,8 +24,9 @@ def extract_phone(text):
     return None
 
 def extract_name(text):
-    # Implement name extraction logic here, if needed.
-    return None
+    # Simple logic example (improve as needed)
+    name_match = re.match(r"(?:my name is|i am|it's|im|I'm|this is)\s+([a-zA-Z ]+)", text, re.I)
+    return name_match.group(1).strip() if name_match else None
 
 # In-memory user state (for demo purposes)
 user_states = {}
@@ -53,21 +54,26 @@ def generate_response(prompt):
         messages = [
             {
                 "role": "system",
-                "content": "You are a friendly chatbot. Always ask the user to provide their name, email, and phone number. If the user gives unrelated information, gently prompt them to provide these details."
+                "content": ("You are a friendly and helpful interior design assistant chatbot for Metamorphic Design. "
+                            "Your primary goal is to gather the customer's name, email, and phone number. "
+                            "Always politely remind the customer to provide missing information. "
+                            "If the customer gives unrelated information, gently bring the conversation back "
+                            "to collecting name, email, and phone number.")
             },
             {"role": "user", "content": prompt}
         ]
-        
+
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=messages,
-            max_tokens=150,
-            temperature=0.7
+            max_tokens=200,
+            temperature=0.6
         )
         return response.choices[0].message.content
     except Exception as e:
         print("Error in generate_response:", e, file=sys.stderr)
-        return "Sorry, an error occurred."
+        return "Sorry, an error occurred. Could you please provide your name, email, and phone number again?"
+
 
 # Send to CRM
 def send_to_crm(user_data):
@@ -307,6 +313,7 @@ def get_person_id(email, phone, name):
     # If not found by email, search by phone (without exact_match).
     if not person_id and phone:
         formatted_phone = phone if phone.startswith('+') else f"+{phone}"
+        formatted_phone = formatted_phone.replace(' ', '').replace('-', '')
         search_url = f"https://api.pipedrive.com/v1/persons/search?term={formatted_phone}&fields=phone&api_token={PIPEDRIVE_API_TOKEN}"
         response = requests.get(search_url)
         if response.status_code == 200:
