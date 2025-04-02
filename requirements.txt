@@ -4,3 +4,5 @@ openai>=1.0.0
 python-dotenv
 gunicorn==20.1.0
 databricks-sql-connector
+pyodbc
+
