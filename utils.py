@@ -51,6 +51,7 @@ def update_user_state(user_id, message):
 # Generate response using OpenAI API
 def generate_response(prompt):
     try:
+        client = openai.OpenAI()
         messages = [
             {
                 "role": "system",
@@ -63,7 +64,8 @@ def generate_response(prompt):
             {"role": "user", "content": prompt}
         ]
 
-        response = openai.ChatCompletion.create(
+        #response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=messages,
             max_tokens=200,
