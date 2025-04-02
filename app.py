@@ -25,6 +25,7 @@ def whatsapp_webhook_get():
 @app.route('/webhook', methods=['POST'])
 def whatsapp_webhook():
     data = request.json
+    print("Incoming payload:", data, file=sys.stderr)
     response_details = {"status": "received", "actions": []}
 
     try:
@@ -61,6 +62,8 @@ def whatsapp_webhook():
                             result = handle_message_status(message_data)
                             response_details["actions"].append({"type": "message_status", "result": result})
 
+        print("Response sent:", response_details, file=sys.stderr)
+        sys.stderr.flush()
         return jsonify(response_details), 200
     except Exception as e:
         response_details["status"] = "error"

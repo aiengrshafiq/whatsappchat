@@ -119,6 +119,7 @@ def send_whatsapp_message_text(recipient, message):
     }
     try:
         response = requests.post(f'https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages', headers=headers, json=data)
+        print(f"WhatsApp API Response: {response.json()}", file=sys.stderr)  # Debugging
         return response.json()
     except Exception as e:
         print("Error sending message:", e)
