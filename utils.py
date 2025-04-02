@@ -12,9 +12,12 @@ openai.api_key = OPENAI_API_KEY
 
 # Extract name, email, phone (existing code from utils.py)
 def extract_email(text):
-    email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
-    matches = re.findall(email_pattern, text)
-    return matches[0] if matches else None
+    print(f"DEBUG: Received text: {text}")  # Debugging
+    if not isinstance(text, str):
+        return None
+    email_pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+    return re.findall(email_pattern, text)
+
 
 def extract_phone(text):
     phone_pattern = r"(\+?\d{1,3}[\s-]?)?(\d{10})"
