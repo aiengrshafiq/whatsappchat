@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from utils import handle_whatsapp_webhook,handle_message_status, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive,send_whatsapp_message_text
+from utils import handle_whatsapp_webhook,handle_message_status, validate_key, handle_incoming_message,handle_whatsapp_precall_message_pipedrive,send_whatsapp_message_text,insert_call_to_db
 import sys
 from config import VERIFY_TOKEN
 
@@ -87,6 +87,16 @@ def send_whatsapp_message():
     data = request.get_json()
     rsponse = handle_whatsapp_precall_message_pipedrive(data)
     return rsponse
+
+
+@app.route('/justcall-webhook', methods=['POST'])
+def justcall_webhook():
+    data = request.json
+    try:
+        insert_call_to_db(data)
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route('/validate_key')

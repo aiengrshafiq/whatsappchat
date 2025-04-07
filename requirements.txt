@@ -5,4 +5,4 @@ python-dotenv
 gunicorn==20.1.0
 databricks-sql-connector
 pyodbc
-
+packaging

@@ -4,9 +4,9 @@ import openai
 import requests
 import pyodbc
 from flask import jsonify
-from config import OPENAI_API_KEY, CRM_API_URL, WHATSAPP_API_URL, WHATSAPP_ACCESS_TOKEN,PHONE_NUMBER_ID,PIPEDRIVE_API_TOKEN,AZ_ACCESS_TOKEN
-
+from config import OPENAI_API_KEY, CRM_API_URL, WHATSAPP_API_URL, WHATSAPP_ACCESS_TOKEN,PHONE_NUMBER_ID,PIPEDRIVE_API_TOKEN,AZ_ACCESS_TOKEN,DATABRICKS_WA_CONFIG,DATABRICKS_JUSTCALL_CONFIG
 from databricks import sql
+from datetime import datetime
 
 openai.api_key = OPENAI_API_KEY
 
@@ -243,7 +243,7 @@ def handle_incoming_message(message_data):
     customer_reply = message.get('text', {}).get('body', '')
 
     #save chat to DB
-    from datetime import datetime
+  
     timestamp = datetime.utcnow().isoformat()
     insert_message_to_db(customer_phone, customer_name, customer_reply, timestamp)
 
@@ -393,25 +393,50 @@ def add_note_to_deal(deal_id, customer_reply):
 
 
 def insert_message_to_db(customer_phone, customer_name, customer_reply, timestamp):
-    server_hostname = "adb-1738127852431756.16.azuredatabricks.net"  
-    http_path = "/sql/1.0/warehouses/8cddc035c463a758"  
-    access_token = AZ_ACCESS_TOKEN
-
-    catalog_name = "whatsapp_catalog"
-    schema_name = "whatsapp_messages"
-    table_name = "whatsappmessages"
+    
 
     insert_query = f"""
-        INSERT INTO {catalog_name}.{schema_name}.{table_name}
+        INSERT INTO {DATABRICKS_WA_CONFIG['catalog_name']}.{DATABRICKS_WA_CONFIG['schema_name']}.{DATABRICKS_WA_CONFIG['table_name']}
         (CustomerPhone, CustomerName, Message, Timestamp, SentimentStatus)
         VALUES (?, ?, ?, ?, 'Pending')
     """
 
-    with sql.connect(server_hostname=server_hostname,
-                     http_path=http_path,
-                     access_token=access_token) as connection:
+    with sql.connect(server_hostname=DATABRICKS_WA_CONFIG['server_hostname'],
+                     http_path=DATABRICKS_WA_CONFIG['http_path'],
+                     access_token=DATABRICKS_WA_CONFIG['access_token']) as connection:
         with connection.cursor() as cursor:
             cursor.execute(insert_query, 
                            (customer_phone, customer_name, customer_reply, timestamp))
             connection.commit()
+
+def insert_call_to_db(data):
+    insert_query = f"""
+        INSERT INTO {DATABRICKS_JUSTCALL_CONFIG['catalog_name']}.{DATABRICKS_JUSTCALL_CONFIG['schema_name']}.{DATABRICKS_JUSTCALL_CONFIG['table_name']}
+        (CallSID, CallType, PhoneNumber, AgentName, CallStartTime, CallEndTime, CallDuration, Transcript, Summary, 
+         RecordingURL, Disposition, Notes, Tags, Timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    with sql.connect(server_hostname=DATABRICKS_JUSTCALL_CONFIG['server_hostname'],
+                     http_path=DATABRICKS_JUSTCALL_CONFIG['http_path'],
+                     access_token=DATABRICKS_JUSTCALL_CONFIG['access_token']) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(insert_query, (
+                data.get('call_sid'),
+                data.get('call_type'),
+                data.get('customer_number'),
+                data.get('agent_name'),
+                data.get('start_time'),
+                data.get('end_time'),
+                data.get('duration'),
+                data.get('transcript'),
+                data.get('summary'),
+                data.get('recording_url'),
+                data.get('disposition'),
+                data.get('notes'),
+                data.get('tags'),
+                datetime.utcnow()
+            ))
+            connection.commit()
+
 
